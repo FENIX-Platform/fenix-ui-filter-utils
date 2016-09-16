@@ -1,6 +1,6 @@
 {
   "name": "fenix-ui-filter-utils",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.3",
   "description": "FENIX Filter Utils",
   "main": "dist/fenix-ui-filter-utils.min.js",
   "directories": {
@@ -8,8 +8,13 @@
   },
   "scripts": {
     "test": "mocha test/specs.js -w",
-    "build": "NODE_ENV=production webpack",
-    "build:develop": "NODE_ENV=develop webpack"
+    "build": "NODE_ENV=production webpack  --display-error-details",
+    "build:develop": "NODE_ENV=develop webpack  --display-error-details",
+    "w-test": "mocha test/specs.js -w",
+    "w-build": "SET NODE_ENV=production&& webpack --display-error-details",
+    "w-build:develop": "SET NODE_ENV=develop&& webpack --display-error-details",
+    "w-dev": "SET NODE_ENV=develop&& webpack-dev-server --display-error-details --progress --color --content-base dev  --inline --hot"
+
   },
   "repository": {
     "type": "git",

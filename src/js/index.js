@@ -1,7 +1,3 @@
-if (typeof define !== 'function') {
-	var define = require('amdefine')(module);
-}
-
 define([
 	'../config/errors',
 	'../config/config',
@@ -158,6 +154,8 @@ define([
 		log.info(o);
 
 		$.extend(true, this, o);
+
+		this.lang = o.lang || C.lang;
 
 		var configuration = {};
 
@@ -887,6 +885,35 @@ define([
 
 		return errors.length > 0 ? errors : valid;
 	};
+
+	Utils.prototype.assign = function (obj, prop, value) {
+		if (typeof prop === "string")
+			prop = prop.split(".");
+
+		if (prop.length > 1) {
+			var e = prop.shift();
+			this.assign(obj[e] =
+					Object.prototype.toString.call(obj[e]) === "[object Object]"
+						? obj[e]
+						: {},
+				prop,
+				value);
+		} else {
+			obj[prop[0]] = value;
+		}
+	};
+
+	Utils.prototype.getNestedProperty = function (path, obj) {
+
+		var obj = $.extend(true, {}, obj),
+			arr = path.split(".");
+
+		while (arr.length && (obj = obj[arr.shift()]));
+
+		return obj;
+
+	};
+
 
 	return new Utils();
 
