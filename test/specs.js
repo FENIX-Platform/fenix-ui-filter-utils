@@ -25,6 +25,8 @@ describe("Utils", function () {
             }
         });
 
+        console.log(config)
+
         expect((Object.keys(config)).every(function (a) {
             console.log(!String(a).toUpperCase().startsWith("VALUE"), a)
             return !String(a).toUpperCase().startsWith("VALUE")

@@ -21,7 +21,7 @@ define([
 
     Utils.prototype.compileFilter = function (id, values, items) {
 
-        _.extend(this, C);
+        $.extend(true, this, C);
 
         var config = items[id] || {},
             formatConfig = config.format || {},
@@ -67,7 +67,7 @@ define([
          - code list configuration
          */
 
-        var model = _.extend(config.cl, config.format, {codes: '"' + values.join('","') + '"'});
+        var model = $.extend(true, config.cl, config.format, {codes: '"' + values.join('","') + '"'});
 
         if (!template) {
             log.error("Impossible to find '" + id + "' process template. Check your '" + id + "'.filter.process configuration.")
@@ -156,7 +156,7 @@ define([
         log.info("Create filter configuration from:");
         log.info(o);
 
-        _.extend(this, C, o);
+        $.extend(true, this, C, o);
 
         var configuration = {};
 
@@ -166,7 +166,7 @@ define([
             _.each(o.model.metadata.dsd.columns, _.bind(function (c) {
 
                 if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !c.id.endsWith("_" + this.lang.toUpperCase())) {
-                    configuration[c.id] = _.extend({}, this._processFxColumn(c), this.common);
+                    configuration[c.id] = $.extend(true, {}, this._processFxColumn(c), this.common);
                 } else {
                     log.warn(c.id + " was excluded. [id: " + c.id + ", subject: " + c.subject + "]");
                 }
@@ -262,7 +262,7 @@ define([
             log.error(ERR.INVALID_FENIX_COLUMN);
         }
 
-        return _.extend({}, conf, this._commonProcessColumn(c));
+        return $.extend(true, {}, conf, this._commonProcessColumn(c));
     };
 
     /* processes for CODE FX column */
