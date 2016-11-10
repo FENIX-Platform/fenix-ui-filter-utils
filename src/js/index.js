@@ -1,920 +1,934 @@
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
 define([
-	'../config/errors',
-	'../config/config',
-	'jquery',
-	'underscore',
-	'loglevel',
-	'handlebars'
+    '../config/errors',
+    '../config/config',
+    'jquery',
+    'underscore',
+    'loglevel',
+    'handlebars'
 ], function (ERR, C, $, _, log, Handlebars) {
 
-	'use strict';
+    'use strict';
 
-	function Utils() {
+    function Utils() {
 
-		return this;
-	}
+        return this;
+    }
 
-	//FENIX
+    //FENIX
 
-	Utils.prototype.compileFilter = function (id, values, items) {
+    Utils.prototype.compileFilter = function (id, values, items) {
 
-		$.extend(true, this, C);
+        _.extend(this, C);
 
-		var config = items[id] || {},
-			formatConfig = config.format || {},
-			template = formatConfig.template,
-			output = formatConfig.output || "codes";
+        var config = items[id] || {},
+            formatConfig = config.format || {},
+            template = formatConfig.template,
+            output = formatConfig.output || "codes";
 
-		if (template) {
-			return this.compileTemplate(id, values, config, template);
-		}
+        if (template) {
+            return this.compileTemplate(id, values, config, template);
+        }
 
-		var key = formatConfig.dimension || id,
-			tmpl;
+        var key = formatConfig.dimension || id,
+            tmpl;
 
-		switch (output.toLocaleLowerCase()) {
-			case "codes" :
+        switch (output.toLocaleLowerCase()) {
+            case "codes" :
 
-				tmpl = '{ "codes":[{"uid": "{{{uid}}}", "version": "{{version}}", "codes": [{{{codes}}}] } ]}';
-				return this.compileTemplate(id, values, config, key, tmpl);
+                tmpl = '{ "codes":[{"uid": "{{{uid}}}", "version": "{{version}}", "codes": [{{{codes}}}] } ]}';
+                return this.compileTemplate(id, values, config, key, tmpl);
 
-				break;
-			case "time" :
+                break;
+            case "time" :
 
-				return this.createTimeFilter(id, values, config, key);
-				break;
+                return this.createTimeFilter(id, values, config, key);
+                break;
 
-			case "enumeration" :
+            case "enumeration" :
 
-				return this.createEnumerationFilter(id, values, config, key);
-				break;
-			default :
-				log.warn(id + " not included in the result set. Missing format configuration.");
-				return {};
-		}
+                return this.createEnumerationFilter(id, values, config, key);
+                break;
+            default :
+                log.warn(id + " not included in the result set. Missing format configuration.");
+                return {};
+        }
 
-	};
+    };
 
-	Utils.prototype.compileTemplate = function (id, values, config, key, template) {
+    Utils.prototype.compileTemplate = function (id, values, config, key, template) {
 
-		/*
-		 Priority
-		 - values
-		 - format configuration
-		 - code list configuration
-		 */
+        /*
+         Priority
+         - values
+         - format configuration
+         - code list configuration
+         */
 
-		var model = $.extend(true, config.cl, config.format, {codes: '"' + values.join('","') + '"'});
+        var model = _.extend(config.cl, config.format, {codes: '"' + values.join('","') + '"'});
 
-		if (!template) {
-			log.error("Impossible to find '" + id + "' process template. Check your '" + id + "'.filter.process configuration.")
-		}
+        if (!template) {
+            log.error("Impossible to find '" + id + "' process template. Check your '" + id + "'.filter.process configuration.")
+        }
 
-		if (!model.uid) {
-			log.error("Impossible to find '" + id + "' code list configuration for FENIX output format export.");
-			return;
-		}
+        if (!model.uid) {
+            log.error("Impossible to find '" + id + "' code list configuration for FENIX output format export.");
+            return;
+        }
 
-		var tmpl = Handlebars.compile(template),
-			process = JSON.parse(tmpl(model)),
-			codes = process.codes;
+        var tmpl = Handlebars.compile(template),
+            process = JSON.parse(tmpl(model)),
+            codes = process.codes;
 
-		//Remove empty version attributes
-		_.each(codes, function (obj) {
-			if (!obj.version) {
-				delete obj.version;
-			}
-		});
+        //Remove empty version attributes
+        _.each(codes, function (obj) {
+            if (!obj.version) {
+                delete obj.version;
+            }
+        });
 
-		return process;
+        return process;
 
-	};
+    };
 
-	Utils.prototype.createTimeFilter = function (id, values, config, key) {
+    Utils.prototype.createTimeFilter = function (id, values, config, key) {
 
-		var time = [],
-			valuesAreObject = typeof values[0] === 'object',
-			v;
+        var time = [],
+            valuesAreObject = typeof values[0] === 'object',
+            v;
 
-		if (valuesAreObject) {
+        if (valuesAreObject) {
 
-			var from = _.findWhere(values, {parent: "from"}) || {},
-				to = _.findWhere(values, {parent: "to"}) || {},
-				couple = {from: null, to: null};
+            var from = _.findWhere(values, {parent: "from"}) || {},
+                to = _.findWhere(values, {parent: "to"}) || {},
+                couple = {from: null, to: null};
 
-			couple.from = from.value;
-			couple.to = to.value;
+            couple.from = from.value;
+            couple.to = to.value;
 
-			time.push($.extend({}, couple));
+            time.push($.extend({}, couple));
 
-		} else {
+        } else {
 
-			v = values.map(function (a) {
-				return parseInt(a, 10);
-			}).sort(function (a, b) {
-				return a - b;
-			});
+            v = values.map(function (a) {
+                return parseInt(a, 10);
+            }).sort(function (a, b) {
+                return a - b;
+            });
 
 
-			_.each(v, function (i) {
-				time.push({from: i, to: i});
-			});
+            _.each(v, function (i) {
+                time.push({from: i, to: i});
+            });
 
-		}
+        }
 
-		return {time: time};
-	};
+        return {time: time};
+    };
 
-	Utils.prototype.createEnumerationFilter = function (id, values, config, key) {
+    Utils.prototype.createEnumerationFilter = function (id, values, config, key) {
 
-		return {enumeration: values};
+        return {enumeration: values};
 
-	};
+    };
 
-	Utils.prototype.cleanArray = function (actual) {
-		var newArray = [];
-		for (var i = 0; i < actual.length; i++) {
-			if (actual[i]) {
-				newArray.push(actual[i]);
-			}
-		}
-		return newArray;
-	};
+    Utils.prototype.cleanArray = function (actual) {
+        var newArray = [];
+        for (var i = 0; i < actual.length; i++) {
+            if (actual[i]) {
+                newArray.push(actual[i]);
+            }
+        }
+        return newArray;
+    };
+
+    /* FILTER UTILS */
+
+    /**
+     * Creates a FENIX filter configuration from a
+     * FENIX resource
+     * @param {Object} o
+     * @return {Object} filter configuration
+     */
+    Utils.prototype.createConfiguration = function (o) {
+        log.info("Create filter configuration from:");
+        log.info(o);
+
+        _.extend(this, C, o);
+
+        var configuration = {};
+
+        if (this._isFenixResource(o.model) === true) {
+            log.info("Valid resource");
+
+            _.each(o.model.metadata.dsd.columns, _.bind(function (c) {
+
+                if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !c.id.endsWith("_" + this.lang.toUpperCase())) {
+                    configuration[c.id] = _.extend({}, this._processFxColumn(c), this.common);
+                } else {
+                    log.warn(c.id + " was excluded. [id: " + c.id + ", subject: " + c.subject + "]");
+                }
+
+            }, this));
+
+        } else {
+            log.error(ERR.INVALID_FENIX_RESOURCE);
+        }
+
+        return configuration;
+    };
+
+    /**
+     * Merges a FENIX filter configuration with
+     * default values
+     * @param {Object} config
+     * @param {Object} sync
+     * @return {Object} filter configuration
+     */
+    Utils.prototype.mergeConfigurations = function (config, s) {
+
+        var sync = s.toolbar ? s.toolbar : s;
+
+        if (sync) {
+
+            var values = sync.values;
+
+            _.each(values, _.bind(function (obj, key) {
+
+                if (config.hasOwnProperty(key)) {
+                    config[key].selector.default = values[key];
+                }
+
+            }, this));
+        }
+
+        return config;
+
+    };
+
+    // private fns
+
+    Utils.prototype._processFxColumn = function (c) {
+
+        var conf = {};
+
+        if (this._isFenixColumn(c) === true) {
+            log.info("Valid column with dataType: " + c.dataType.toLowerCase() + " [column.id = " + c.id + " ]");
+
+            switch (c.dataType.toLowerCase()) {
+                case "customcode" :
+                    conf = this._processCustomCodeColumn(c);
+                    break;
+                case "enumeration" :
+                    conf = this._processEnumerationColumn(c);
+                    break;
+                case "code" :
+                    conf = this._processCodeColumn(c);
+                    break;
+                case "date" :
+                    conf = this._processDateColumn(c);
+                    break;
+                case "month" :
+                    conf = this._processMonthColumn(c);
+                    break;
+                case "year" :
+                    conf = this._processYearColumn(c);
+                    break;
+                case "time" :
+                    conf = this._processTimeColumn(c);
+                    break;
+                case "text" :
+                    conf = this._processTextColumn(c);
+                    break;
+                case "label" :
+                    conf = this._processLabelColumn(c);
+                    break;
+                case "number" :
+                    conf = this._processNumberColumn(c);
+                    break;
+                case "percentage" :
+                    conf = this._processPercentageColumn(c);
+                    break;
+                case "bool" :
+                    conf = this._processBooleanColumn(c);
+                    break;
+                default:
+                    log.error(ERR.UNKNOWN_FENIX_COLUMN_DATATYPE, c.dataType.toLowerCase());
 
-	/* FILTER UTILS */
+            }
+        } else {
+            log.error(ERR.INVALID_FENIX_COLUMN);
+        }
 
-	/**
-	 * Creates a FENIX filter configuration from a
-	 * FENIX resource
-	 * @param {Object} o
-	 * @return {Object} filter configuration
-	 */
-	Utils.prototype.createConfiguration = function (o) {
-		log.info("Create filter configuration from:");
-		log.info(o);
-
-		$.extend(true, this, o);
-
-		this.lang = o.lang || C.lang;
-
-		var configuration = {};
-
-		if (this._isFenixResource(o.model) === true) {
-			log.info("Valid resource");
-
-			_.each(o.model.metadata.dsd.columns, _.bind(function (c) {
-
-				if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !c.id.endsWith("_" + this.lang.toUpperCase())) {
-					configuration[c.id] = $.extend(true, {}, this._processFxColumn(c), this.common);
-				} else {
-					log.warn(c.id + " was excluded. [id: " + c.id + ", subject: " + c.subject + "]");
-				}
-
-			}, this));
-
-		} else {
-			log.error(ERR.INVALID_FENIX_RESOURCE);
-		}
-
-		return configuration;
-	};
-
-	/**
-	 * Merges a FENIX filter configuration with
-	 * default values
-	 * @param {Object} config
-	 * @param {Object} sync
-	 * @return {Object} filter configuration
-	 */
-	Utils.prototype.mergeConfigurations = function (config, s) {
-
-		var sync = s.toolbar ? s.toolbar : s;
-
-		if (sync) {
-
-			var values = sync.values;
-
-			_.each(values, _.bind(function (obj, key) {
-
-				if (config.hasOwnProperty(key)) {
-					config[key].selector.default = values[key];
-				}
-
-			}, this));
-		}
-
-		return config;
-
-	};
-
-	// private fns
-
-	Utils.prototype._processFxColumn = function (c) {
-
-		var conf = {};
-
-		if (this._isFenixColumn(c) === true) {
-			log.info("Valid column with dataType: " + c.dataType.toLowerCase() + " [column.id = " + c.id + " ]");
-
-			switch (c.dataType.toLowerCase()) {
-				case "customcode" :
-					conf = this._processCustomCodeColumn(c);
-					break;
-				case "enumeration" :
-					conf = this._processEnumerationColumn(c);
-					break;
-				case "code" :
-					conf = this._processCodeColumn(c);
-					break;
-				case "date" :
-					conf = this._processDateColumn(c);
-					break;
-				case "month" :
-					conf = this._processMonthColumn(c);
-					break;
-				case "year" :
-					conf = this._processYearColumn(c);
-					break;
-				case "time" :
-					conf = this._processTimeColumn(c);
-					break;
-				case "text" :
-					conf = this._processTextColumn(c);
-					break;
-				case "label" :
-					conf = this._processLabelColumn(c);
-					break;
-				case "number" :
-					conf = this._processNumberColumn(c);
-					break;
-				case "percentage" :
-					conf = this._processPercentageColumn(c);
-					break;
-				case "bool" :
-					conf = this._processBooleanColumn(c);
-					break;
-				default:
-					log.error(ERR.UNKNOWN_FENIX_COLUMN_DATATYPE, c.dataType.toLowerCase());
+        return _.extend({}, conf, this._commonProcessColumn(c));
+    };
 
-			}
-		} else {
-			log.error(ERR.INVALID_FENIX_COLUMN);
-		}
+    /* processes for CODE FX column */
 
-		return $.extend(true, {}, conf, this._commonProcessColumn(c));
-	};
+    Utils.prototype._processCustomCodeColumn = function (c) {
+        return this._configTreeFromSource(c);
+        //return this._configDropdownFromSource(c);
+    };
 
-	/* processes for CODE FX column */
+    Utils.prototype._processEnumerationColumn = function (c) {
 
-	Utils.prototype._processCustomCodeColumn = function (c) {
-		return this._configTreeFromSource(c);
-		//return this._configDropdownFromSource(c);
-	};
+        var config = {},
+            domain = c.domain || {},
+            enumeration = domain.enumeration || [];
 
-	Utils.prototype._processEnumerationColumn = function (c) {
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.hideFilter = true;
+        config.selector.source = _.map(enumeration, function (obj) {
+            return {
+                value: obj,
+                label: obj
+            }
+        });
 
-		var config = {},
-			domain = c.domain || {},
-			enumeration = domain.enumeration || [];
+        return config;
+    };
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "tree";
-		config.selector.hideFilter = true;
-		config.selector.source = _.map(enumeration, function (obj) {
-			return {
-				value: obj,
-				label: obj
-			}
-		});
+    Utils.prototype._processCodeColumn = function (c) {
 
-		return config;
-	};
+        return this._configTreeFromCodelist(c);
+        //return this._configDropdownFromCodelist(c);
 
-	Utils.prototype._processCodeColumn = function (c) {
+    };
 
-		return this._configTreeFromCodelist(c);
-		//return this._configDropdownFromCodelist(c);
+    /* processes for TIME FX column */
 
-	};
+    Utils.prototype._processDateColumn = function (c) {
 
-	/* processes for TIME FX column */
+        var domain = c.domain || {},
+            period = domain.period,
+            timelist = domain.timeList;
 
-	Utils.prototype._processDateColumn = function (c) {
+        if (period && period.from && period.to) {
+            //return this._configRangeFromPeriod(c);
+            return this._configTimeFromPeriod(c);
+            //return this._configDropdownFromPeriod(c);
+        }
 
-		var domain = c.domain || {},
-			period = domain.period,
-			timelist = domain.timeList;
+        if (timelist) {
+            //return this._configDropdownFromTimelist(c);
+            return this._configTreeFromTimelist(c);
+        }
 
-		if (period && period.from && period.to) {
-			//return this._configRangeFromPeriod(c);
-			return this._configTimeFromPeriod(c);
-			//return this._configDropdownFromPeriod(c);
-		}
+        log.warn("Impossible to find process for column " + c.id);
 
-		if (timelist) {
-			//return this._configDropdownFromTimelist(c);
-			return this._configTreeFromTimelist(c);
-		}
+        return {};
 
-		log.warn("Impossible to find process for column " + c.id);
+    };
 
-		return {};
+    Utils.prototype._processMonthColumn = function (c) {
 
-	};
+        return this._configTemporalColumn(c);
+    };
 
-	Utils.prototype._processMonthColumn = function (c) {
+    Utils.prototype._processYearColumn = function (c) {
 
-		return this._configTemporalColumn(c);
-	};
+        return this._configTemporalColumn(c);
+    };
 
-	Utils.prototype._processYearColumn = function (c) {
+    Utils.prototype._processTimeColumn = function (c) {
 
-		return this._configTemporalColumn(c);
-	};
+        return this._configTemporalColumn(c);
 
-	Utils.prototype._processTimeColumn = function (c) {
+    };
 
-		return this._configTemporalColumn(c);
+    /* processes for TEXT FX column */
 
-	};
+    Utils.prototype._processTextColumn = function (c) {
 
-	/* processes for TEXT FX column */
+        return this._configInput(c, {type: "text"});
+    };
 
-	Utils.prototype._processTextColumn = function (c) {
+    Utils.prototype._processLabelColumn = function (c) {
 
-		return this._configInput(c, {type: "text"});
-	};
+        return this._configInput(c, {type: "text"});
+    };
 
-	Utils.prototype._processLabelColumn = function (c) {
+    /* processes for OTHER FX column */
 
-		return this._configInput(c, {type: "text"});
-	};
+    Utils.prototype._processNumberColumn = function (c) {
 
-	/* processes for OTHER FX column */
+        return this._configInput(c, {type: "number", output: "time"});
+    };
 
-	Utils.prototype._processNumberColumn = function (c) {
+    Utils.prototype._processPercentageColumn = function (c) {
+        log.warn("TODO process");
+    };
 
-		return this._configInput(c, {type: "number", output: "time"});
-	};
+    Utils.prototype._processBooleanColumn = function (c) {
+        return this._configInput(c, {type: "checkbox"});
 
-	Utils.prototype._processPercentageColumn = function (c) {
-		log.warn("TODO process");
-	};
+    };
 
-	Utils.prototype._processBooleanColumn = function (c) {
-		return this._configInput(c, {type: "checkbox"});
+    /* Common processes */
 
-	};
+    Utils.prototype._commonProcessColumn = function (c) {
 
-	/* Common processes */
+        var config = {
+            template: {},
+            format: {
+                dimension: c.id
+            }
+        };
 
-	Utils.prototype._commonProcessColumn = function (c) {
+        if (c.title && c.title[this.lang.toUpperCase()]) {
+            config.template.title = c.title[this.lang.toUpperCase()];
+        }
 
-		var config = {
-			template: {},
-			format: {
-				dimension: c.id
-			}
-		};
+        return config;
+    };
 
-		if (c.title && c.title[this.lang.toUpperCase()]) {
-			config.template.title = c.title[this.lang.toUpperCase()];
-		}
+    Utils.prototype._configTreeFromCodelist = function (c) {
 
-		return config;
-	};
+        var config = {},
+            domain = c.domain || {},
+            codes = domain.codes,
+            cl;
 
-	Utils.prototype._configTreeFromCodelist = function (c) {
+        if (!Array.isArray(codes) || codes.length > 1) {
+            log.warn("Invalid domain.codes attributes");
+        }
 
-		var config = {},
-			domain = c.domain || {},
-			codes = domain.codes,
-			cl;
+        cl = codes[0];
 
-		if (!Array.isArray(codes) || codes.length > 1) {
-			log.warn("Invalid domain.codes attributes");
-		}
+        if (!cl.idCodeList) {
+            log.error("Impossible to find idCodeList");
+        }
 
-		cl = codes[0];
+        //configure code list
+        config.cl = {};
+        config.cl.uid = cl.idCodeList;
+        config.cl.version = cl.version;
 
-		if (!cl.idCodeList) {
-			log.error("Impossible to find idCodeList");
-		}
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.lazy = true;
+        config.selector.hideFilter = true;
 
-		//configure code list
-		config.cl = {};
-		config.cl.uid = cl.idCodeList;
-		config.cl.version = cl.version;
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "tree";
-		config.selector.lazy = true;
-		config.selector.hideFilter = true;
+    };
 
-		return config;
+    Utils.prototype._configTreeFromSource = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            codes = domain.codes,
+            cl;
 
-	Utils.prototype._configTreeFromSource = function (c) {
+        if (!Array.isArray(codes) || codes.length > 1) {
+            log.warn("Invalid domain.codes attributes");
+        }
 
-		var config = {},
-			domain = c.domain || {},
-			codes = domain.codes,
-			cl;
+        cl = codes[0];
 
-		if (!Array.isArray(codes) || codes.length > 1) {
-			log.warn("Invalid domain.codes attributes");
-		}
+        if (!cl.codes) {
+            log.error("Impossible to find codes");
+        }
 
-		cl = codes[0];
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.source = _.map(cl.codes, _.bind(function (obj) {
+            return {
+                value: obj.code,
+                label: obj.label[this.lang.toUpperCase()]
+            }
+        }, this));
+        config.selector.hideFilter = true;
 
-		if (!cl.codes) {
-			log.error("Impossible to find codes");
-		}
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "tree";
-		config.selector.source = _.map(cl.codes, _.bind(function (obj) {
-			return {
-				value: obj.code,
-				label: obj.label[this.lang.toUpperCase()]
-			}
-		}, this));
-		config.selector.hideFilter = true;
+    };
 
-		return config;
+    Utils.prototype._configDropdownFromPeriod = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            period = domain.period;
 
-	Utils.prototype._configDropdownFromPeriod = function (c) {
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "dropdown";
+        config.selector.from = period.from;
+        config.selector.to = period.to;
 
-		var config = {},
-			domain = c.domain || {},
-			period = domain.period;
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "dropdown";
-		config.selector.from = period.from;
-		config.selector.to = period.to;
+    };
 
-		return config;
+    Utils.prototype._configTreeFromPeriod = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            period = domain.period;
 
-	Utils.prototype._configTreeFromPeriod = function (c) {
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.from = period.from;
+        config.selector.to = period.to;
+        config.selector.hideFilter = true;
 
-		var config = {},
-			domain = c.domain || {},
-			period = domain.period;
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "tree";
-		config.selector.from = period.from;
-		config.selector.to = period.to;
-		config.selector.hideFilter = true;
+    };
 
-		return config;
+    Utils.prototype._configDropdownFromTimelist = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            timelist = domain.timeList || [],
+            format = this._getTimeFormat(timelist[0]);
 
-	Utils.prototype._configDropdownFromTimelist = function (c) {
+        //configure selector
+        config.selector = {};
+        config.selector.id = "dropdown";
+        config.selector.source = _.map(timelist, _.bind(function (obj) {
+            return {
+                value: obj,
+                label: new Moment(obj, format).format(this._getTimeLabelFormat(obj))
+            }
+        }, this));
 
-		var config = {},
-			domain = c.domain || {},
-			timelist = domain.timeList || [],
-			format = this._getTimeFormat(timelist[0]);
+        return config;
 
-		//configure selector
-		config.selector = {};
-		config.selector.id = "dropdown";
-		config.selector.source = _.map(timelist, _.bind(function (obj) {
-			return {
-				value: obj,
-				label: new Moment(obj, format).format(this._getTimeLabelFormat(obj))
-			}
-		}, this));
+    };
 
-		return config;
+    Utils.prototype._configTreeFromTimelist = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            timelist = domain.timeList || [],
+            format = this._getTimeFormat(timelist[0]);
 
-	Utils.prototype._configTreeFromTimelist = function (c) {
+        //configure selector
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.source = _.map(timelist, _.bind(function (obj) {
+            return {
+                value: obj,
+                label: new Moment(obj, format).format(this._getTimeLabelFormat(obj))
+            }
+        }, this));
+        config.selector.hideFilter = true;
 
-		var config = {},
-			domain = c.domain || {},
-			timelist = domain.timeList || [],
-			format = this._getTimeFormat(timelist[0]);
+        return config;
 
-		//configure selector
-		config.selector = {};
-		config.selector.id = "tree";
-		config.selector.source = _.map(timelist, _.bind(function (obj) {
-			return {
-				value: obj,
-				label: new Moment(obj, format).format(this._getTimeLabelFormat(obj))
-			}
-		}, this));
-		config.selector.hideFilter = true;
+    };
 
-		return config;
+    Utils.prototype._configDropdownFromSource = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            codes = domain.codes,
+            cl;
 
-	Utils.prototype._configDropdownFromSource = function (c) {
+        if (!Array.isArray(codes) || codes.length > 1) {
+            log.warn("Invalid domain.codes attributes");
+        }
 
-		var config = {},
-			domain = c.domain || {},
-			codes = domain.codes,
-			cl;
+        cl = codes[0];
 
-		if (!Array.isArray(codes) || codes.length > 1) {
-			log.warn("Invalid domain.codes attributes");
-		}
+        if (!cl.codes) {
+            log.error("Impossible to find codes");
+        }
 
-		cl = codes[0];
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "dropdown";
+        config.selector.source = _.map(cl.codes, _.bind(function (obj) {
+            return {
+                value: obj.code,
+                label: obj.label[this.lang.toUpperCase()]
+            }
+        }, this));
 
-		if (!cl.codes) {
-			log.error("Impossible to find codes");
-		}
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "dropdown";
-		config.selector.source = _.map(cl.codes, _.bind(function (obj) {
-			return {
-				value: obj.code,
-				label: obj.label[this.lang.toUpperCase()]
-			}
-		}, this));
+    };
 
-		return config;
+    Utils.prototype._configDropdownFromCodelist = function (c) {
 
-	};
+        var config = {},
+            domain = c.domain || {},
+            codes = domain.codes,
+            cl;
 
-	Utils.prototype._configDropdownFromCodelist = function (c) {
+        if (!Array.isArray(codes) || codes.length > 1) {
+            log.warn("Invalid domain.codes attributes");
+        }
 
-		var config = {},
-			domain = c.domain || {},
-			codes = domain.codes,
-			cl;
+        cl = codes[0];
 
-		if (!Array.isArray(codes) || codes.length > 1) {
-			log.warn("Invalid domain.codes attributes");
-		}
+        if (!cl.idCodeList) {
+            log.error("Impossible to find idCodeList");
+        }
 
-		cl = codes[0];
+        //configure code list
+        config.cl = {};
+        config.cl.uid = cl.idCodeList;
+        config.cl.version = cl.version;
 
-		if (!cl.idCodeList) {
-			log.error("Impossible to find idCodeList");
-		}
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "dropdown";
 
-		//configure code list
-		config.cl = {};
-		config.cl.uid = cl.idCodeList;
-		config.cl.version = cl.version;
+        return config;
 
-		//configure selector
-		//html selector configuration
-		config.selector = {};
-		config.selector.id = "dropdown";
+    };
 
-		return config;
+    Utils.prototype._configTimeFromPeriod = function (c) {
 
-	};
+        /* ~~~~~~ Selector time
+         var config = {},
+         domain = c.domain || {},
+         period = domain.period,
+         from = String(period.from),
+         to = String(period.to),
+         //from = String(period.from).substring(0, String(period.from).length - 2),
+         //to = String(period.to).substring(0, String(period.to).length - 2),
+         format = this._getTimeFormat(from);
 
-	Utils.prototype._configTimeFromPeriod = function (c) {
+         //configure selector
+         config.selector = {
+         config: {}
+         };
+         config.selector.id = "time";
+         config.selector.config.minDate = new Moment(from, format);
+         config.selector.config.maxDate = new Moment(to, format);
+         config.selector.config.format = this._getTimeLabelFormat(from);
 
-		/* ~~~~~~ Selector time
-		 var config = {},
-		 domain = c.domain || {},
-		 period = domain.period,
-		 from = String(period.from),
-		 to = String(period.to),
-		 //from = String(period.from).substring(0, String(period.from).length - 2),
-		 //to = String(period.to).substring(0, String(period.to).length - 2),
-		 format = this._getTimeFormat(from);
+         if (from.length < 5) {
+         config.selector.config.viewMode = "years";
+         }
 
-		 //configure selector
-		 config.selector = {
-		 config: {}
-		 };
-		 config.selector.id = "time";
-		 config.selector.config.minDate = new Moment(from, format);
-		 config.selector.config.maxDate = new Moment(to, format);
-		 config.selector.config.format = this._getTimeLabelFormat(from);
+         config.format = {
+         output : "time"
+         };
+         */
 
-		 if (from.length < 5) {
-		 config.selector.config.viewMode = "years";
-		 }
+        var config = {},
+            domain = c.domain || {},
+            period = domain.period,
+            from = String(period.from),
+            to = String(period.to);
 
-		 config.format = {
-		 output : "time"
-		 };
-		 */
+        //configure selector
+        config.selector = {
+            config: {}
+        };
 
-		var config = {},
-			domain = c.domain || {},
-			period = domain.period,
-			from = String(period.from),
-			to = String(period.to);
+        config.selector.id = "tree";
+        config.selector.from = parseInt(from, 10);
+        config.selector.to = parseInt(to, 10);
+        config.selector.hideFilter = true;
+        config.format = {
+            output: "time"
+        };
 
-		//configure selector
-		config.selector = {
-			config: {}
-		};
+        return config;
+    };
 
-		config.selector.id = "tree";
-		config.selector.from = parseInt(from, 10);
-		config.selector.to = parseInt(to, 10);
-		config.selector.hideFilter = true;
-		config.format = {
-			output: "time"
-		};
+    Utils.prototype._configRangeFromPeriod = function (c) {
 
-		return config;
-	};
+        var config = {},
+            domain = c.domain || {},
+            period = domain.period;
 
-	Utils.prototype._configRangeFromPeriod = function (c) {
+        //configure selector
+        config.selector = {
+            config: {}
+        };
 
-		var config = {},
-			domain = c.domain || {},
-			period = domain.period;
+        config.selector.id = "range";
+        config.selector.config.min = period.from;
+        config.selector.config.max = period.to;
+        config.selector.config.type = "double";
+        config.selector.config.prettify_enabled = false;
 
-		//configure selector
-		config.selector = {
-			config: {}
-		};
+        return config;
 
-		config.selector.id = "range";
-		config.selector.config.min = period.from;
-		config.selector.config.max = period.to;
-		config.selector.config.type = "double";
-		config.selector.config.prettify_enabled = false;
+    };
 
-		return config;
+    Utils.prototype._configInput = function (c, o) {
 
-	};
+        var config = {
+            selector: {},
+            format: {
+                output: o.output || "enumeration"
+            }
+        };
 
-	Utils.prototype._configInput = function (c, o) {
+        config.selector.id = "input";
+        config.selector.type = o.type || "text";
 
-		var config = {
-			selector: {},
-			format: {
-				output: o.output || "enumeration"
-			}
-		};
+        return config;
+    };
 
-		config.selector.id = "input";
-		config.selector.type = o.type || "text";
+    Utils.prototype._configTemporalColumn = function (c) {
 
-		return config;
-	};
+        var domain = c.domain || {},
+            period = domain.period,
+            timelist = domain.timeList;
 
-	Utils.prototype._configTemporalColumn = function (c) {
+        if (period && period.from && period.to) {
+            //return this._configRangeFromPeriod(c);
+            //return this._configTimeFromPeriod(c);
+            //return this._configDropdownFromPeriod(c);
+            return this._configTreeFromPeriod(c);
+        }
 
-		var domain = c.domain || {},
-			period = domain.period,
-			timelist = domain.timeList;
+        if (timelist) {
+            //return this._configDropdownFromTimelist(c);
+            return this._configTreeFromTimelist(c);
+        }
 
-		if (period && period.from && period.to) {
-			//return this._configRangeFromPeriod(c);
-			//return this._configTimeFromPeriod(c);
-			//return this._configDropdownFromPeriod(c);
-			return this._configTreeFromPeriod(c);
-		}
+        //Default set year range
+        log.warn("Column " + c.id + " set with default time period range.");
 
-		if (timelist) {
-			//return this._configDropdownFromTimelist(c);
-			return this._configTreeFromTimelist(c);
-		}
+        c.domain = {
+            period: {
+                from: C.defaultPeriodFrom,
+                to: C.defaultPeriodTo
+            }
+        };
 
-		//Default set year range
-		log.warn("Column " + c.id + " set with default time period range.");
+        return this._configTimeFromPeriod(c);
+    };
 
-		c.domain = {
-			period: {
-				from: C.defaultPeriodFrom,
-				to: C.defaultPeriodTo
-			}
-		};
+    Utils.prototype._getTimeFormat = function (s) {
 
-		return this._configTimeFromPeriod(c);
-	};
+        var format;
 
-	Utils.prototype._getTimeFormat = function (s) {
+        switch (String(s).length) {
+            case 4 :
+                format = "YYYY";
+                break;
+            case 6:
+                format = "YYYY MM";
+                break;
+            case 8:
+                format = "YYYY MM DD";
+                break;
+            case 12:
+                format = "YYYY MM DD hh mm";
+                break;
+            case 14:
+                format = "YYYY MM DD hh mm ss";
+                break;
+            default:
+                log.warn("Impossible to find time format for: " + format);
+        }
 
-		var format;
+        return format;
 
-		switch (String(s).length) {
-			case 4 :
-				format = "YYYY";
-				break;
-			case 6:
-				format = "YYYY MM";
-				break;
-			case 8:
-				format = "YYYY MM DD";
-				break;
-			case 12:
-				format = "YYYY MM DD hh mm";
-				break;
-			case 14:
-				format = "YYYY MM DD hh mm ss";
-				break;
-			default:
-				log.warn("Impossible to find time format for: " + format);
-		}
+    };
 
-		return format;
+    Utils.prototype._getTimeLabelFormat = function (s) {
 
-	};
+        if (this.timeLabelFormat) {
+            return this.timeLabelFormat;
+        }
 
-	Utils.prototype._getTimeLabelFormat = function (s) {
+        var format;
 
-		if (this.timeLabelFormat) {
-			return this.timeLabelFormat;
-		}
+        switch (String(s).length) {
+            case 4 :
+                format = "YYYY";
+                break;
+            case 6:
+                format = "L";
+                break;
+            case 8:
+                format = "L";
+                break;
+            case 14:
+                format = "lll";
+                break;
+            default:
+                log.warn("Impossible to find time label format for: " + format);
+        }
 
-		var format;
+        return format;
 
-		switch (String(s).length) {
-			case 4 :
-				format = "YYYY";
-				break;
-			case 6:
-				format = "L";
-				break;
-			case 8:
-				format = "L";
-				break;
-			case 14:
-				format = "lll";
-				break;
-			default:
-				log.warn("Impossible to find time label format for: " + format);
-		}
+    };
 
-		return format;
+    /*   /!* Revert Process *!/
+     /!**
+     * Extracts a blank selection from FENIX process
+     * default values
+     * @param {Object} filter
+     * @return {Object} filter configuration
+     *!/
+     Utils.prototype.revertProcess = function (filter) {
 
-	};
+     var configuration = {};
 
-	/*   /!* Revert Process *!/
-	 /!**
-	 * Extracts a blank selection from FENIX process
-	 * default values
-	 * @param {Object} filter
-	 * @return {Object} filter configuration
-	 *!/
-	 Utils.prototype.revertProcess = function (filter) {
+     if (Array.isArray(filter)) {
 
-	 var configuration = {};
+     _.each(filter, _.bind(function ( step ) {
 
-	 if (Array.isArray(filter)) {
+     var fn = "_revert_" + step.name;
 
-	 _.each(filter, _.bind(function ( step ) {
+     if ( $.isFunction(this[fn]) && step.parameters) {
+     configuration[step.name] = _.extend( this[fn](step));
+     } else {
+     log.error(fn + " is not a valid reverse function");
+     }
 
-	 var fn = "_revert_" + step.name;
+     }, this));
+     }
 
-	 if ( $.isFunction(this[fn]) && step.parameters) {
-	 configuration[step.name] = $.extend(true, this[fn](step));
-	 } else {
-	 log.error(fn + " is not a valid reverse function");
-	 }
+     return configuration;
 
-	 }, this));
-	 }
+     };
 
-	 return configuration;
+     Utils.prototype._revert_filter = function (step) {
+     log.info("_revert_filter " + JSON.stringify(step));
 
-	 };
+     var self = this,
+     result = {},
+     parameters = step.parameters,
+     rows = parameters.rows,
+     columns = parameters.columns;
 
-	 Utils.prototype._revert_filter = function (step) {
-	 log.info("_revert_filter " + JSON.stringify(step));
+     _.each(rows, function ( obj , key) {
 
-	 var self = this,
-	 result = {},
-	 parameters = step.parameters,
-	 rows = parameters.rows,
-	 columns = parameters.columns;
+     if ( obj.time ) {
+     result[key] = self._revert_time_row(obj);
+     } else {
+     result[key] = self._revert_codes_row(obj);
+     }
 
-	 _.each(rows, function ( obj , key) {
+     });
 
-	 if ( obj.time ) {
-	 result[key] = self._revert_time_row(obj);
-	 } else {
-	 result[key] = self._revert_codes_row(obj);
-	 }
+     return result;
+     };
 
-	 });
+     Utils.prototype._revert_time_row = function ( step ) {
 
-	 return result;
-	 };
+     console.log(step)
 
-	 Utils.prototype._revert_time_row = function ( step ) {
+     };
 
-	 console.log(step)
+     Utils.prototype._revert_codes_row = function ( step ) {
 
-	 };
+     console.log(step)
 
-	 Utils.prototype._revert_codes_row = function ( step ) {
 
-	 console.log(step)
+     };
 
+     Utils.prototype._revert_group = function (step) {
+     log.info("_revert_group " + JSON.stringify(step));
 
-	 };
 
-	 Utils.prototype._revert_group = function (step) {
-	 log.info("_revert_group " + JSON.stringify(step));
+     return;
+     };
 
+     Utils.prototype._revert_order = function (step) {
+     log.info("_revert_order " + JSON.stringify(step));
 
-	 return;
-	 };
+     return;
+     };
+     */
+    /* Validation */
 
-	 Utils.prototype._revert_order = function (step) {
-	 log.info("_revert_order " + JSON.stringify(step));
+    Utils.prototype._isFenixResource = function (res) {
 
-	 return;
-	 };
-	 */
-	/* Validation */
+        var valid = true,
+            errors = [],
+            resourceType = this.getNestedProperty("metadata.meContent.resourceRepresentationType", res);
 
-	Utils.prototype._isFenixResource = function (res) {
+        if (!res.hasOwnProperty("metadata")) {
+            errors.push({code: ERR.INVALID_METADATA});
+            valid = false;
+        }
 
-		var valid = true,
-			errors = [],
-			resourceType = this.getNestedProperty("metadata.meContent.resourceRepresentationType", res);
+        if (valid && !res.metadata.hasOwnProperty("dsd")) {
+            errors.push({code: ERR.INVALID_DSD});
+            valid = false;
+        }
 
-		if (!res.hasOwnProperty("metadata")) {
-			errors.push({code: ERR.INVALID_METADATA});
-			valid = false;
-		}
+        //NOT need field for FENIX GEOGRAPHIC RESOURCE
+        if (resourceType === "dataset" && valid && (!res.metadata.dsd.hasOwnProperty("columns") || !Array.isArray(res.metadata.dsd.columns))) {
+            errors.push({code: ERR.INVALID_COLUMNS});
+        }
 
-		if (valid && !res.metadata.hasOwnProperty("dsd")) {
-			errors.push({code: ERR.INVALID_DSD});
-			valid = false;
-		}
+        return errors.length > 0 ? errors : valid;
+    };
 
-		//NOT need field for FENIX GEOGRAPHIC RESOURCE
-		if (resourceType === "dataset" && valid && (!res.metadata.dsd.hasOwnProperty("columns") || !Array.isArray(res.metadata.dsd.columns))) {
-			errors.push({code: ERR.INVALID_COLUMNS});
-		}
+    Utils.prototype._isFenixColumn = function (c) {
 
-		return errors.length > 0 ? errors : valid;
-	};
+        var valid = true,
+            errors = [];
 
-	Utils.prototype._isFenixColumn = function (c) {
+        if (!c.hasOwnProperty("dataType")) {
+            errors.push({code: ERR.INVALID_COLUMN_DATATYPE});
+            valid = false;
+        }
 
-		var valid = true,
-			errors = [];
+        return errors.length > 0 ? errors : valid;
+    };
 
-		if (!c.hasOwnProperty("dataType")) {
-			errors.push({code: ERR.INVALID_COLUMN_DATATYPE});
-			valid = false;
-		}
+    Utils.prototype.getNestedProperty = function (path, obj) {
 
-		return errors.length > 0 ? errors : valid;
-	};
+        var obj = _.extend({}, obj),
+            arr = path.split(".");
 
-	Utils.prototype.assign = function (obj, prop, value) {
-		if (typeof prop === "string")
-			prop = prop.split(".");
+        while (arr.length && (obj = obj[arr.shift()]));
 
-		if (prop.length > 1) {
-			var e = prop.shift();
-			this.assign(obj[e] =
-					Object.prototype.toString.call(obj[e]) === "[object Object]"
-						? obj[e]
-						: {},
-				prop,
-				value);
-		} else {
-			obj[prop[0]] = value;
-		}
-	};
+        return obj;
 
-	Utils.prototype.getNestedProperty = function (path, obj) {
+    };
 
-		var obj = $.extend(true, {}, obj),
-			arr = path.split(".");
 
-		while (arr.length && (obj = obj[arr.shift()]));
+    Utils.prototype.assign = function (obj, prop, value) {
+        if (typeof prop === "string")
+            prop = prop.split(".");
 
-		return obj;
+        if (prop.length > 1) {
+            var e = prop.shift();
+            this.assign(obj[e] =
+                    Object.prototype.toString.call(obj[e]) === "[object Object]"
+                        ? obj[e]
+                        : {},
+                prop,
+                value);
+        } else {
+            obj[prop[0]] = value;
+        }
+    };
 
-	};
+    Utils.prototype.getNestedProperty = function (path, obj) {
 
+        var obj = _.extend({}, obj),
+            arr = path.split(".");
 
-	return new Utils();
+        while (arr.length && (obj = obj[arr.shift()]));
+
+        return obj;
+
+    };
+
+
+    return new Utils();
+
 
 });

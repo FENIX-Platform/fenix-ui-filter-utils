@@ -1,6 +1,6 @@
 {
   "name": "fenix-ui-filter-utils",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.6",
   "description": "FENIX Filter Utils",
   "main": "dist/fenix-ui-filter-utils.min.js",
   "directories": {
@@ -38,7 +38,7 @@
     "jshint-loader": "^0.8.3",
     "mocha": "^3.0.2",
     "webpack": "^1.13.2",
-    "webpack-dev-server": "^1.15.0"
+    "webpack-dev-server": "^1.15.1"
   },
   "dependencies": {
     "handlebars": "^4.0.5",
