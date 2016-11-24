@@ -2,8 +2,9 @@ define([
     'loglevel',
     'jquery',
     'underscore',
-    '../../../src/js/index'
-], function (log, $, _, Utils) {
+    '../../../src/js/index',
+    "../models/dataset"
+], function (log, $, _, Utils, Model) {
 
     'use strict';
 
@@ -12,7 +13,10 @@ define([
         console.clear();
 
         //trace, debug, info, warn, error, silent
-        log.setLevel('trace');
+        //log.setLevel('trace');
+        log.setLevel('silent');
+
+        this._importThirdPartyCss();
 
         this.start();
 
@@ -28,14 +32,16 @@ define([
 
     Dev.prototype._render = function () {
 
-        var obj = {},
-            path = "a",
-            value = "test";
+        console.log(Utils.createConfiguration({
+            model : Model
+        }))
 
-        Utils.assign(path, obj, value);
+    };
 
-        console.log(Utils.getNestedProperty(path, obj))
+    Dev.prototype._importThirdPartyCss = function () {
 
+        //Bootstrap
+        require('bootstrap/dist/css/bootstrap.css');
 
     };
 

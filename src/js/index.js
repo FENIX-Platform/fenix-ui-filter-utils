@@ -7,8 +7,9 @@ define([
     'jquery',
     'underscore',
     'loglevel',
-    'handlebars'
-], function (ERR, C, $, _, log, Handlebars) {
+    'handlebars',
+    'moment'
+], function (ERR, C, $, _, log, Handlebars, Moment) {
 
     'use strict';
 
@@ -166,7 +167,7 @@ define([
             _.each(o.model.metadata.dsd.columns, _.bind(function (c) {
 
                 if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !c.id.endsWith("_" + this.lang.toUpperCase())) {
-                    configuration[c.id] = $.extend(true, {}, this._processFxColumn(c), this.common);
+                    configuration[c.id] = $.extend(true, {}, this._processFxColumn(c, o.model.metadata), this.common);
                 } else {
                     log.warn(c.id + " was excluded. [id: " + c.id + ", subject: " + c.subject + "]");
                 }
@@ -210,7 +211,7 @@ define([
 
     // private fns
 
-    Utils.prototype._processFxColumn = function (c) {
+    Utils.prototype._processFxColumn = function (c, metadata) {
 
         var conf = {};
 
@@ -225,7 +226,7 @@ define([
                     conf = this._processEnumerationColumn(c);
                     break;
                 case "code" :
-                    conf = this._processCodeColumn(c);
+                    conf = this._processCodeColumn(c, metadata);
                     break;
                 case "date" :
                     conf = this._processDateColumn(c);
@@ -293,9 +294,10 @@ define([
         return config;
     };
 
-    Utils.prototype._processCodeColumn = function (c) {
+    Utils.prototype._processCodeColumn = function (c, metadata) {
 
-        return this._configTreeFromCodelist(c);
+        return this._configTreeFromDistinct(c, metadata);
+        //return this._configTreeFromCodelist(c);
         //return this._configDropdownFromCodelist(c);
 
     };
@@ -385,6 +387,41 @@ define([
         }
 
         return config;
+    };
+
+    Utils.prototype._configTreeFromDistinct = function (c, metadata) {
+
+        var config = {},
+            domain = c.domain || {},
+            codes = domain.codes,
+            cl;
+
+        if (!Array.isArray(codes) || codes.length > 1) {
+            log.warn("Invalid domain.codes attributes");
+        }
+
+        cl = codes[0];
+
+        if (!cl.idCodeList) {
+            log.error("Impossible to find idCodeList");
+        }
+
+        //configure code list
+        config.distinct = {
+            uid : metadata.uid,
+            version : metadata.version,
+            columnId :c.id
+        };
+
+        //configure selector
+        //html selector configuration
+        config.selector = {};
+        config.selector.id = "tree";
+        //config.selector.lazy = true;
+        //config.selector.hideFilter = true;
+
+        return config;
+
     };
 
     Utils.prototype._configTreeFromCodelist = function (c) {
