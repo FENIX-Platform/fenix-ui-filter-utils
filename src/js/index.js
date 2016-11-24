@@ -283,7 +283,7 @@ define([
         //html selector configuration
         config.selector = {};
         config.selector.id = "tree";
-        config.selector.hideFilter = true;
+        //config.selector.hideFilter = true;
         config.selector.source = _.map(enumeration, function (obj) {
             return {
                 value: obj,
@@ -484,7 +484,7 @@ define([
                 label: obj.label[this.lang.toUpperCase()]
             }
         }, this));
-        config.selector.hideFilter = true;
+        //config.selector.hideFilter = true;
 
         return config;
 
@@ -519,7 +519,7 @@ define([
         config.selector.id = "tree";
         config.selector.from = period.from;
         config.selector.to = period.to;
-        config.selector.hideFilter = true;
+        //config.selector.hideFilter = true;
 
         return config;
 
@@ -562,7 +562,7 @@ define([
                 label: new Moment(obj, format).format(this._getTimeLabelFormat(obj))
             }
         }, this));
-        config.selector.hideFilter = true;
+        //config.selector.hideFilter = true;
 
         return config;
 
@@ -675,7 +675,7 @@ define([
         config.selector.id = "tree";
         config.selector.from = parseInt(from, 10);
         config.selector.to = parseInt(to, 10);
-        config.selector.hideFilter = true;
+        //config.selector.hideFilter = true;
         config.format = {
             output: "time"
         };
