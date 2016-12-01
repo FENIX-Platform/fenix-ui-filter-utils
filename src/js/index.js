@@ -68,7 +68,7 @@ define([
          - code list configuration
          */
 
-        var model = $.extend(true, config.cl, config.format, {codes: '"' + values.join('","') + '"'});
+        var model = $.extend(true, config.cl, config.format, config.distinct, {codes: '"' + values.join('","') + '"'});
 
         if (!template) {
             log.error("Impossible to find '" + id + "' process template. Check your '" + id + "'.filter.process configuration.")
@@ -419,6 +419,11 @@ define([
         config.selector.id = "tree";
         //config.selector.lazy = true;
         //config.selector.hideFilter = true;
+
+        config.format = {};
+        config.format.output = "codes";
+        config.format.uid = cl.idCodeList;
+        config.format.version = cl.version;
 
         return config;
 

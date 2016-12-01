@@ -1,6 +1,6 @@
 {
   "name": "fenix-ui-filter-utils",
-  "version": "1.0.0-beta.10",
+  "version": "1.0.0-beta.14",
   "description": "FENIX Filter Utils",
   "main": "dist/fenix-ui-filter-utils.min.js",
   "directories": {
