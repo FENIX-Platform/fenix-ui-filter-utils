@@ -417,6 +417,10 @@ define([
         //html selector configuration
         config.selector = {};
         config.selector.id = "tree";
+        config.selector.config = {
+            core: { multiple: false },
+            plugins: null
+        };
         //config.selector.lazy = true;
         //config.selector.hideFilter = true;
 
