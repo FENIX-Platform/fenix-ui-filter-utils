@@ -165,8 +165,8 @@ define([
             log.info("Valid resource");
 
             _.each(o.model.metadata.dsd.columns, _.bind(function (c) {
-
-                if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !c.id.endsWith("_" + this.lang.toUpperCase())) {
+            
+                 if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !(this._endsWith(c.id, "_" + this.lang.toUpperCase()))) {
                     configuration[c.id] = $.extend(true, {}, this._processFxColumn(c, o.model.metadata), this.common);
                 } else {
                     log.warn(c.id + " was excluded. [id: " + c.id + ", subject: " + c.subject + "]");
@@ -179,6 +179,14 @@ define([
         }
 
         return configuration;
+    };
+
+    Utils.prototype._endsWith = function(str, suffix) {
+        if(str.indexOf(suffix, str.length - suffix.length) === -1) {
+            return false;
+        } else {
+             return true;
+         }
     };
 
     /**
