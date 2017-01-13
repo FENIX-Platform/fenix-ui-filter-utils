@@ -165,7 +165,7 @@ define([
             log.info("Valid resource");
 
             _.each(o.model.metadata.dsd.columns, _.bind(function (c) {
-            
+
                  if (!_.contains(this.forbiddenSubjects, c.subject) && !_.contains(this.exclude, c.id) && !(this._endsWith(c.id, "_" + this.lang.toUpperCase()))) {
                     configuration[c.id] = $.extend(true, {}, this._processFxColumn(c, o.model.metadata), this.common);
                 } else {
@@ -240,13 +240,13 @@ define([
                     conf = this._processDateColumn(c);
                     break;
                 case "month" :
-                    conf = this._processMonthColumn(c);
+                    conf = this._processMonthColumn(c, metadata);
                     break;
                 case "year" :
-                    conf = this._processYearColumn(c);
+                    conf = this._processYearColumn(c, metadata);
                     break;
                 case "time" :
-                    conf = this._processTimeColumn(c);
+                    conf = this._processTimeColumn(c, metadata);
                     break;
                 case "text" :
                     conf = this._processTextColumn(c);
@@ -335,19 +335,19 @@ define([
 
     };
 
-    Utils.prototype._processMonthColumn = function (c) {
+    Utils.prototype._processMonthColumn = function (c, metadata) {
 
-        return this._configTemporalColumn(c);
+        return this._configTemporalColumn(c, metadata);
     };
 
-    Utils.prototype._processYearColumn = function (c) {
+    Utils.prototype._processYearColumn = function (c, metadata) {
 
-        return this._configTemporalColumn(c);
+        return this._configTemporalColumn(c, metadata);
     };
 
-    Utils.prototype._processTimeColumn = function (c) {
+    Utils.prototype._processTimeColumn = function (c, metadata) {
 
-        return this._configTemporalColumn(c);
+        return this._configTemporalColumn(c, metadata);
 
     };
 
@@ -418,7 +418,8 @@ define([
         config.distinct = {
             uid : metadata.uid,
             version : metadata.version,
-            columnId :c.id
+            columnId :c.id,
+            columnDataType: "code"
         };
 
         //configure selector
@@ -650,34 +651,6 @@ define([
 
     Utils.prototype._configTimeFromPeriod = function (c) {
 
-        /* ~~~~~~ Selector time
-         var config = {},
-         domain = c.domain || {},
-         period = domain.period,
-         from = String(period.from),
-         to = String(period.to),
-         //from = String(period.from).substring(0, String(period.from).length - 2),
-         //to = String(period.to).substring(0, String(period.to).length - 2),
-         format = this._getTimeFormat(from);
-
-         //configure selector
-         config.selector = {
-         config: {}
-         };
-         config.selector.id = "time";
-         config.selector.config.minDate = new Moment(from, format);
-         config.selector.config.maxDate = new Moment(to, format);
-         config.selector.config.format = this._getTimeLabelFormat(from);
-
-         if (from.length < 5) {
-         config.selector.config.viewMode = "years";
-         }
-
-         config.format = {
-         output : "time"
-         };
-         */
-
         var config = {},
             domain = c.domain || {},
             period = domain.period,
@@ -736,7 +709,7 @@ define([
         return config;
     };
 
-    Utils.prototype._configTemporalColumn = function (c) {
+    Utils.prototype._configTemporalColumn = function (c, metadata) {
 
         var domain = c.domain || {},
             period = domain.period,
@@ -754,17 +727,32 @@ define([
             return this._configTreeFromTimelist(c);
         }
 
-        //Default set year range
-        log.warn("Column " + c.id + " set with default time period range.");
 
-        c.domain = {
-            period: {
-                from: C.defaultPeriodFrom,
-                to: C.defaultPeriodTo
-            }
+        //Distinct
+
+        var config = {};
+
+        config.selector = {};
+        config.selector.id = "tree";
+        config.selector.config = {
+            core: { multiple: false },
+            plugins: null
         };
 
-        return this._configTimeFromPeriod(c);
+        //config.selector.hideFilter = true;
+        config.format = {
+            output: "time"
+        };
+
+        //configure code list
+        config.distinct = {
+            uid : metadata.uid,
+            version : metadata.version,
+            columnId :c.id,
+            columnDataType: "number"
+        };
+
+        return config;
     };
 
     Utils.prototype._getTimeFormat = function (s) {
@@ -824,84 +812,6 @@ define([
 
     };
 
-    /*   /!* Revert Process *!/
-     /!**
-     * Extracts a blank selection from FENIX process
-     * default values
-     * @param {Object} filter
-     * @return {Object} filter configuration
-     *!/
-     Utils.prototype.revertProcess = function (filter) {
-
-     var configuration = {};
-
-     if (Array.isArray(filter)) {
-
-     _.each(filter, _.bind(function ( step ) {
-
-     var fn = "_revert_" + step.name;
-
-     if ( $.isFunction(this[fn]) && step.parameters) {
-     configuration[step.name] = _.extend( this[fn](step));
-     } else {
-     log.error(fn + " is not a valid reverse function");
-     }
-
-     }, this));
-     }
-
-     return configuration;
-
-     };
-
-     Utils.prototype._revert_filter = function (step) {
-     log.info("_revert_filter " + JSON.stringify(step));
-
-     var self = this,
-     result = {},
-     parameters = step.parameters,
-     rows = parameters.rows,
-     columns = parameters.columns;
-
-     _.each(rows, function ( obj , key) {
-
-     if ( obj.time ) {
-     result[key] = self._revert_time_row(obj);
-     } else {
-     result[key] = self._revert_codes_row(obj);
-     }
-
-     });
-
-     return result;
-     };
-
-     Utils.prototype._revert_time_row = function ( step ) {
-
-     console.log(step)
-
-     };
-
-     Utils.prototype._revert_codes_row = function ( step ) {
-
-     console.log(step)
-
-
-     };
-
-     Utils.prototype._revert_group = function (step) {
-     log.info("_revert_group " + JSON.stringify(step));
-
-
-     return;
-     };
-
-     Utils.prototype._revert_order = function (step) {
-     log.info("_revert_order " + JSON.stringify(step));
-
-     return;
-     };
-     */
     /* Validation */
 
     Utils.prototype._isFenixResource = function (res) {
@@ -981,8 +891,6 @@ define([
 
     };
 
-
     return new Utils();
-
 
 });

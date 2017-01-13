@@ -36,13 +36,7 @@ define([
             model : Model
         });
 
-        console.log(config);
-
-        var filter = Utils.createConfiguration({
-            model : Model
-        });
-
-
+        console.log(config)
 
     };
 
