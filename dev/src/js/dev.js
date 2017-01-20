@@ -36,6 +36,7 @@ define([
             model : Model
         });
 
+        console.log(JSON.stringify(config))
         console.log(config)
 
     };

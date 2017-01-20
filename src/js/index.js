@@ -427,8 +427,7 @@ define([
         config.selector = {};
         config.selector.id = "tree";
         config.selector.config = {
-            core: { multiple: false },
-            plugins: null
+            core: { multiple: true }
         };
         //config.selector.lazy = true;
         //config.selector.hideFilter = true;
@@ -469,6 +468,9 @@ define([
         config.selector = {};
         config.selector.id = "tree";
         config.selector.lazy = true;
+        config.selector.config = {
+            core: { multiple: true }
+        };
         config.selector.hideFilter = true;
 
         return config;
@@ -735,8 +737,7 @@ define([
         config.selector = {};
         config.selector.id = "tree";
         config.selector.config = {
-            core: { multiple: false },
-            plugins: null
+            core: { multiple: true },
         };
 
         //config.selector.hideFilter = true;
